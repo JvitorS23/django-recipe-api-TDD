@@ -120,6 +120,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
+# Access urls
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+
+# real directory where the files will be saved
+MEDIA_ROOT = '/vol/media'
+STATIC_ROOT = '/vol/static'
 
 AUTH_USER_MODEL = 'core.User'
