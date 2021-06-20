@@ -14,7 +14,7 @@ from core.models import Recipe, Tag, Ingredient
 
 from recipe.serializers import RecipeSerializer, RecipeDetailSerializer
 
-RECIPES_URLS = reverse('recipe:recipe-list')
+RECIPES_URL = reverse('recipe:recipe-list')
 
 
 def image_upload_url(recipe_id):
@@ -56,7 +56,7 @@ class PublicRecipeApiTests(TestCase):
 
     def test_auth_required(self):
         """Test that authentication is required"""
-        res = self.client.get(RECIPES_URLS)
+        res = self.client.get(RECIPES_URL)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
@@ -77,7 +77,7 @@ class PrivateRecipeApiTests(TestCase):
         sample_recipe(user=self.user)
         sample_recipe(user=self.user)
 
-        res = self.client.get(RECIPES_URLS)
+        res = self.client.get(RECIPES_URL)
 
         recipes = Recipe.objects.all().order_by('-id')
 
@@ -96,7 +96,7 @@ class PrivateRecipeApiTests(TestCase):
         sample_recipe(user=user2)
         sample_recipe(user=self.user)
 
-        res = self.client.get(RECIPES_URLS)
+        res = self.client.get(RECIPES_URL)
 
         recipes = Recipe.objects.filter(user=self.user)
         serializer = RecipeSerializer(recipes, many=True)
@@ -125,7 +125,7 @@ class PrivateRecipeApiTests(TestCase):
             'time_minutes': 20,
             'price': 10.0
         }
-        res = self.client.post(RECIPES_URLS, payload)
+        res = self.client.post(RECIPES_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         recipe = Recipe.objects.get(id=res.data['id'])
@@ -144,7 +144,7 @@ class PrivateRecipeApiTests(TestCase):
             'tags': [tag1.id, tag2.id]
         }
 
-        res = self.client.post(RECIPES_URLS, payload)
+        res = self.client.post(RECIPES_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         recipe = Recipe.objects.get(id=res.data['id'])
@@ -165,7 +165,7 @@ class PrivateRecipeApiTests(TestCase):
             'ingredients': [ingredient1.id, ingredient2.id]
         }
 
-        res = self.client.post(RECIPES_URLS, payload)
+        res = self.client.post(RECIPES_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
@@ -213,6 +213,52 @@ class PrivateRecipeApiTests(TestCase):
         self.assertEqual(recipe.price, payload['price'])
         tags = recipe.tags.all()
         self.assertEqual(len(tags), 0)
+
+    def test_filter_recipes_by_tags(self):
+        """Test returning recipes with specifics tags"""
+        recipe1 = sample_recipe(user=self.user, title='Curry')
+        recipe2 = sample_recipe(user=self.user, title='Sushi')
+        tag1 = sample_tag(user=self.user, name='Chinese')
+        tag2 = sample_tag(user=self.user, name='Japanese')
+        recipe1.tags.add(tag1)
+        recipe2.tags.add(tag2)
+        recipe3 = sample_recipe(user=self.user, title='Fish and chips')
+
+        res = self.client.get(
+            RECIPES_URL,
+            {'tags': f'{tag1.id},{tag2.id}'}
+        )
+
+        serializer1 = RecipeSerializer(recipe1)
+        serializer2 = RecipeSerializer(recipe2)
+        serializer3 = RecipeSerializer(recipe3)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
+
+    def test_filter_recipe_by_ingredients(self):
+        """Test returning recipes with specific ingredients"""
+        recipe1 = sample_recipe(user=self.user, title='Pizza')
+        recipe2 = sample_recipe(user=self.user, title='Sushi')
+        ingredient1 = sample_ingredient(user=self.user, name='Cheese')
+        ingredient2 = sample_ingredient(user=self.user, name='Fish')
+        recipe1.ingredients.add(ingredient1)
+        recipe2.ingredients.add(ingredient2)
+        recipe3 = sample_recipe(user=self.user, title='Chips')
+
+        res = self.client.get(
+            RECIPES_URL,
+            {'ingredients': f'{ingredient1.id},{ingredient2.id}'}
+        )
+
+        serializer1 = RecipeSerializer(recipe1)
+        serializer2 = RecipeSerializer(recipe2)
+        serializer3 = RecipeSerializer(recipe3)
+
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
 
 
 class RecipeImageUploadTests(TestCase):
