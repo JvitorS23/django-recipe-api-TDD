@@ -27,7 +27,7 @@ Run using Docker: `docker-compose up`
 
 ## Implemented tests:
 
-* Tests for all the models
+* Tests for all models
 * Tests for all endpoints
 * Authentication tests
 * Test image upload
